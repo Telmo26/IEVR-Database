@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchCharacters } from "../api/characters";
 import type { Character } from "../types/character";
 

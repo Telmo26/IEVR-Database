@@ -1,5 +1,6 @@
 use axum::Router;
 
+mod common;
 mod characters;
 mod skills;
 

@@ -10,8 +10,10 @@ use sqlx::{Executor, sqlite::SqlitePoolOptions};
 mod state;
 mod models;
 mod routes;
+mod cache;
 
 use state::AppState;
+use cache::cache_response;
 use tower_http::services::ServeDir;
 
 use crate::state::SharedState;
@@ -51,11 +53,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         "https://ievr-database.onrender.com/".parse().unwrap(),
     ];
 
+    let app_clone = app_state.clone();
+
     let app = Router::new()
         .nest("/api", routes::router())
         .with_state(app_state)
         .layer(ServiceBuilder::new()
             .layer(CorsLayer::new().allow_origin(origins))
+            .layer(axum::middleware::from_fn_with_state(app_clone, cache_response))
             .layer(CompressionLayer::new())
         )
         .fallback_service(ServeDir::new("assets"));

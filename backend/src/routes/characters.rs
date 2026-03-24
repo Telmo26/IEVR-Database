@@ -1,11 +1,13 @@
-use std::{hash::{DefaultHasher, Hash, Hasher}, sync::Arc};
-
 use axum::{Json, Router, extract::State, routing::get};
 use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
 use sqlx::{Execute, QueryBuilder, Sqlite};
 
-use crate::{models::character_summary::CharacterSummary, state::SharedState};
+use crate::{
+    routes::common::Language,
+    models::character_summary::CharacterSummary, 
+    state::SharedState
+};
 
 pub fn router() -> Router<crate::state::SharedState> {
     Router::new()
@@ -40,13 +42,6 @@ async fn get_summaries(
     params: SearchParams,
     table_name: &str
 ) -> Result<Json<Vec<CharacterSummary>>, axum::http::StatusCode> {
-
-    let key = format!("{table_name}:{}", calculate_hash(&params));
-
-    if let Some(response) = app_state.character_cache().get(&key).await {
-        return Ok((*response).clone())
-    }
-
     let start_time = std::time::Instant::now();
 
     let mut query_builder = QueryBuilder::new(
@@ -82,11 +77,7 @@ async fn get_summaries(
 
             println!("Request served in {} micro-s", duration.as_micros());
 
-            let json = Json(chars);
-
-            app_state.character_cache().insert(key, Arc::new(json.clone())).await;
-
-            Ok(json)
+            Ok(Json(chars))
         },
         Err(e) => {
             eprintln!("{e}");
@@ -161,12 +152,6 @@ fn build_inner_query<'a>(query_builder: &mut QueryBuilder<'_, Sqlite>, params: &
     query_builder.push("LIMIT 200");
 }
 
-fn calculate_hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
-}
-
 #[derive(Debug, Serialize, Deserialize, Hash)]
 pub struct SearchParams {
     #[serde(default)]
@@ -213,39 +198,6 @@ impl OrderField {
             Self::Physical => "lvl50_physical",
             Self::Agility => "lvl50_agility",
             Self::Intelligence => "lvl50_intelligence"
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Hash)]
-#[serde(rename_all = "lowercase")]
-#[allow(non_camel_case_types)]
-enum Language {
-    DE,
-    EN,
-    ES,
-    FR,
-    IT,
-    JA,
-    PT,
-    ZH_HANS,
-    ZH_HANT
-}
-
-impl Language {
-    fn default() -> Language { Language::EN }
-
-    fn to_sql(&self) -> &'static str {
-        match self {
-            Self::DE => "de",
-            Self::EN => "en",
-            Self::ES => "es",
-            Self::FR => "fr",
-            Self::IT => "it",
-            Self::JA => "ja",
-            Self::PT => "pt",
-            Self::ZH_HANS => "zh_hans",
-            Self::ZH_HANT => "zh_hant"
         }
     }
 }

@@ -60,7 +60,7 @@ impl Aura {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum Category {
     SHOOT = 1,
@@ -81,7 +81,7 @@ impl From<u8> for Category {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum AuraType {
     Keshin = 0,

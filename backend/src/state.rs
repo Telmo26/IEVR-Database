@@ -1,21 +1,22 @@
 use std::sync::Arc;
 
-use axum::Json;
 use sqlx::SqlitePool;
 use moka::future::Cache;
 
-use crate::models::character_summary::CharacterSummary;
+use crate::cache::{CachedResponse, Encoding};
 
 pub struct AppState {
     data_db: SqlitePool,
-    character_cache: Cache<String, Arc<Json<Vec<CharacterSummary>>>>,
+    cache: Cache<(Arc<str>, Encoding), Arc<CachedResponse>>,
 }
 
 impl AppState {
     pub fn new(data_db: SqlitePool) -> AppState {
         AppState { 
             data_db,
-            character_cache: Cache::new(50)
+            cache: Cache::builder()
+                .max_capacity(50 * 1024 * 1024) // 50 MB cache
+                .build()
         }
     }
 
@@ -23,8 +24,8 @@ impl AppState {
         &self.data_db
     }
 
-    pub fn character_cache(&self) -> &Cache<String, Arc<Json<Vec<CharacterSummary>>>> {
-        &self.character_cache
+    pub fn cache(&self) -> &Cache<(Arc<str>, Encoding), Arc<CachedResponse>> {
+        &self.cache
     }
 }
 
